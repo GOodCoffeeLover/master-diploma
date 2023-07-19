@@ -6,7 +6,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
@@ -18,14 +17,15 @@ func ExecCmdExample(podName string, command string,
 	fmt.Println("Executing...")
 
 	config := &restclient.Config{
-		Host: "http://localhost:8080",
+		Host:    "http://localhost:8080",
+		APIPath: "/api",
 	}
-	config.GroupVersion = &schema.GroupVersion{Version: "v1"}
+	config.GroupVersion = &v1.SchemeGroupVersion
 	config.NegotiatedSerializer = runtime.NewSimpleNegotiatedSerializer(runtime.SerializerInfo{})
 
 	client, err := restclient.RESTClientFor(config)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't create client: %w", err)
 	}
 	cmd := []string{
 		"sh",
@@ -48,8 +48,10 @@ func ExecCmdExample(podName string, command string,
 		scheme.ParameterCodec,
 	)
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	url := req.URL()
+	fmt.Println(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("can't create spdy executor: %w", err)
 	}
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin:  stdin,
@@ -57,7 +59,7 @@ func ExecCmdExample(podName string, command string,
 		Stderr: stderr,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error while executing: %w", err)
 	}
 
 	return nil
