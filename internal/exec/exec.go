@@ -12,16 +12,17 @@ import (
 )
 
 // ExecCmd exec command on specific pod and wait the command's output.
-func ExecCmdExample(podName string, command string,
-	stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+func ExecCmdExample(podName string, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 	fmt.Println("Executing...")
 
 	config := &restclient.Config{
-		Host:    "http://localhost:8080",
-		APIPath: "/api",
+		Host:        "https://192.168.49.2:8443",
+		APIPath:     "/api",
+		BearerToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImdmeDRGUU1LM0ExdFBpUTloWERrRjdLcjJac0Z0UVhxMmxGbTF3dlcyQTQifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNjg5OTQxMDE4LCJpYXQiOjE2ODk5Mzc0MTgsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImFkbWluLXVzZXIiLCJ1aWQiOiJjNjViYTI1NC1hMzQ5LTRmZWItODJkZi0wNzJlNjdiYjYyMzIifX0sIm5iZiI6MTY4OTkzNzQxOCwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6YWRtaW4tdXNlciJ9.l2O9vuTARa5cdFDILInfLrOTgrQGaPn6drGKu8YtxotgtOpWi_RFLPj-C1Pwap9cezt2bTQpQbVbuOu5_LshMBaF4VG6E6j5H843_8AEUrBrZ_9XegL48MX3wOKhpVcWaMpY812QnDUIz-zg6FgMyUuZ31s3Vq_rYqo7vrl_3N906zGdmx2sdJYaaLYiqKwLe1lZoUoqfMb7DPM1IhzjTTt3Lyqh0Ak8BnCzznWiolKuniS7H_X2pU_QI9Ini-vMvF34AjK4OmgviJR708wsYEDsSITwhn-yq2BziDWy1UgmCS4foix0wdgnMrcnEeJ2uoMYUVFsE7lzKpxh3_xFBQ",
 	}
 	config.GroupVersion = &v1.SchemeGroupVersion
 	config.NegotiatedSerializer = runtime.NewSimpleNegotiatedSerializer(runtime.SerializerInfo{})
+	config.Insecure = true
 
 	client, err := restclient.RESTClientFor(config)
 	if err != nil {
@@ -32,16 +33,13 @@ func ExecCmdExample(podName string, command string,
 		"-c",
 		command,
 	}
-	req := client.Post().Resource("pods").Name(podName).Namespace("default").SubResource("exec")
+	req := client.Post().Namespace("default").Resource("pods").Name(podName).SubResource("exec")
 	option := &v1.PodExecOptions{
 		Command: cmd,
 		Stdin:   true,
 		Stdout:  true,
 		Stderr:  true,
 		TTY:     true,
-	}
-	if stdin == nil {
-		option.Stdin = false
 	}
 	req.VersionedParams(
 		option,

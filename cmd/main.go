@@ -9,7 +9,7 @@ import (
 func main() {
 	// executor := exec.NewExecutor()
 	// executor.Exec()
-	err := exec.ExecCmdExample("test", "ls", os.Stdin, os.Stdout, os.Stderr)
+	err := exec.ExecCmdExample("test2", "bash", os.Stdin, os.Stdout, os.Stderr)
 	if err != nil {
 		panic(err)
 	}
