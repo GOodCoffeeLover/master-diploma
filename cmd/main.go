@@ -4,14 +4,20 @@ import (
 	"os"
 
 	"github.com/GOodCoffeeLover/MasterDiploma/internal/exec"
-	// dockerterm "github.com/moby/term"
 )
 
 func main() {
 	// executor := exec.NewExecutor()
 	// executor.Exec()
+	// f, err := os.Open("/dev/tty")
+	// must(err)
 	// in, out, _ := dockerterm.StdStreams()
-	err := exec.ExecCmdExampleV2("test", "bash", os.Stdin, os.Stdout, os.Stdout)
+	in, out, _ := os.Stdin, os.Stdout, os.Stderr
+	must(exec.ExecCmdExampleV2("test", "default", "ls", in, out, out))
+
+}
+
+func must(err error) {
 	if err != nil {
 		panic(err)
 	}
