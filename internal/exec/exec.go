@@ -1,33 +1,76 @@
 package exec
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/homedir"
+	k8sExec "k8s.io/kubectl/pkg/cmd/exec"
 )
 
-// ExecCmd exec command on specific pod and wait the command's output.
-func ExecCmdExample(podName string, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
-	fmt.Println("Executing...")
-
-	config := &restclient.Config{
-		Host:        "https://192.168.49.2:8443",
-		APIPath:     "/api",
-		BearerToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImdmeDRGUU1LM0ExdFBpUTloWERrRjdLcjJac0Z0UVhxMmxGbTF3dlcyQTQifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwiXSwiZXhwIjoxNjg5OTQxMDE4LCJpYXQiOjE2ODk5Mzc0MTgsImlzcyI6Imh0dHBzOi8va3ViZXJuZXRlcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsIiwia3ViZXJuZXRlcy5pbyI6eyJuYW1lc3BhY2UiOiJkZWZhdWx0Iiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImFkbWluLXVzZXIiLCJ1aWQiOiJjNjViYTI1NC1hMzQ5LTRmZWItODJkZi0wNzJlNjdiYjYyMzIifX0sIm5iZiI6MTY4OTkzNzQxOCwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6YWRtaW4tdXNlciJ9.l2O9vuTARa5cdFDILInfLrOTgrQGaPn6drGKu8YtxotgtOpWi_RFLPj-C1Pwap9cezt2bTQpQbVbuOu5_LshMBaF4VG6E6j5H843_8AEUrBrZ_9XegL48MX3wOKhpVcWaMpY812QnDUIz-zg6FgMyUuZ31s3Vq_rYqo7vrl_3N906zGdmx2sdJYaaLYiqKwLe1lZoUoqfMb7DPM1IhzjTTt3Lyqh0Ak8BnCzznWiolKuniS7H_X2pU_QI9Ini-vMvF34AjK4OmgviJR708wsYEDsSITwhn-yq2BziDWy1UgmCS4foix0wdgnMrcnEeJ2uoMYUVFsE7lzKpxh3_xFBQ",
+func ExecCmdExampleV2(podName string, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+	fmt.Println("Running...")
+	execOpts := k8sExec.ExecOptions{}
+	execOpts.PodName = podName
+	execOpts.Namespace = "default"
+	execOpts.Command = []string{"sh", "-c", command}
+	home := homedir.HomeDir()
+	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+	if err != nil {
+		return fmt.Errorf("can't create kube config: %w", err)
 	}
 	config.GroupVersion = &v1.SchemeGroupVersion
 	config.NegotiatedSerializer = runtime.NewSimpleNegotiatedSerializer(runtime.SerializerInfo{})
-	config.Insecure = true
 
-	client, err := restclient.RESTClientFor(config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("can't create client: %w", err)
 	}
+
+	execOpts.Config = config
+	execOpts.PodClient = clientset.CoreV1()
+	execOpts.Executor = &k8sExec.DefaultRemoteExecutor{}
+	execOpts.TTY = true
+	execOpts.Stdin = true
+	execOpts.In = stdin
+	execOpts.Out = stdout
+	execOpts.ErrOut = stderr
+	Pod, err := execOpts.PodClient.Pods(execOpts.Namespace).Get(context.TODO(), execOpts.PodName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("can't get pod: %w", err)
+	}
+	fmt.Println(Pod.Name, Pod.Namespace)
+	return execOpts.Run()
+}
+
+// ExecCmd exec command on specific pod and wait the command's output.
+func ExecCmdExample(podName string, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+
+	fmt.Println("Executing...")
+	home := homedir.HomeDir()
+	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+	if err != nil {
+		return fmt.Errorf("can't create kube config: %w", err)
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("can't create client: %w", err)
+	}
+
+	// config.GroupVersion = &v1.SchemeGroupVersion
+	// config.NegotiatedSerializer = runtime.NewSimpleNegotiatedSerializer(runtime.SerializerInfo{})
+	// config.Insecure = true
+
+	client := clientset.CoreV1().RESTClient()
 	cmd := []string{
 		"sh",
 		"-c",
@@ -46,15 +89,15 @@ func ExecCmdExample(podName string, command string, stdin io.Reader, stdout io.W
 		scheme.ParameterCodec,
 	)
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
-	url := req.URL()
-	fmt.Println(url)
+	fmt.Println(req.URL())
 	if err != nil {
 		return fmt.Errorf("can't create spdy executor: %w", err)
 	}
-	err = exec.Stream(remotecommand.StreamOptions{
+	err = exec.StreamWithContext(context.TODO(), remotecommand.StreamOptions{
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
+		Tty:    false,
 	})
 	if err != nil {
 		return fmt.Errorf("error while executing: %w", err)
