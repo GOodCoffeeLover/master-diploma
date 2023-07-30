@@ -9,8 +9,6 @@ import (
 func main() {
 	// executor := exec.NewExecutor()
 	// executor.Exec()
-	// f, err := os.Open("/dev/tty")
-	// must(err)
 	// in, out, _ := dockerterm.StdStreams()
 	in, out, _ := os.Stdin, os.Stdout, os.Stderr
 	must(exec.ExecCmdExampleV2("test", "default", "ls", in, out, out))
