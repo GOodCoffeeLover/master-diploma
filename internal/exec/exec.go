@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-func printlnRaw(output io.Writer, msg interface{}) {
+func PrintlnRaw(output io.Writer, msg interface{}) {
 	m := fmt.Sprint(msg)
 	fullMessage := m + "\n" + strings.Repeat("\b", len(m))
 	fmt.Fprint(output, fullMessage)
@@ -25,7 +25,7 @@ func printlnRaw(output io.Writer, msg interface{}) {
 // ExecCmd exec command on specific pod and wait the command's output.
 func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 
-	printlnRaw(os.Stderr, "Executing...")
+	PrintlnRaw(os.Stderr, "Executing...")
 	home := homedir.HomeDir()
 	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
 	if err != nil {
@@ -53,7 +53,7 @@ func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout 
 		option,
 		scheme.ParameterCodec,
 	)
-	printlnRaw(os.Stderr, req.URL())
+	PrintlnRaw(os.Stderr, req.URL())
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
 		return fmt.Errorf("can't create spdy executor: %w", err)
