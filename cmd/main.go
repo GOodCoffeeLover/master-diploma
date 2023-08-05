@@ -1,38 +1,41 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
-	osExec "os/exec"
+	"sync"
 
-	"github.com/GOodCoffeeLover/MasterDiploma/internal/exec"
-	"golang.org/x/term"
+	"github.com/GOodCoffeeLover/MasterDiploma/internal/buffer"
+	exec "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
 )
 
 func main() {
 
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-	must(err, "Can't make raw term")
-	defer term.Restore(int(os.Stdin.Fd()), oldState)
-	must(osExec.Command("stty", "-F", "/dev/tty", "-echo").Run(), "Can't turn off print to term")
-	defer func() {
-		must(osExec.Command("stty", "-F", "/dev/tty", "echo").Run(), "Can't turn on print to term")
-	}()
+	// oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	// must(err, "Can't make raw term")
+	// defer term.Restore(int(os.Stdin.Fd()), oldState)
+	// must(osExec.Command("stty", "-F", "/dev/tty", "-echo").Run(), "Can't turn off print to term")
+	// defer func() {
+	// 	must(osExec.Command("stty", "-F", "/dev/tty", "echo").Run(), "Can't turn on print to term")
+	// }()
 
-	_, out := os.Stdin, os.Stdout
-	in, _ := NewBufferReadWriteCloser(10), NewBufferReadWriteCloser(10)
+	out := os.Stdout
+	in := os.Stdin
+	// in := buffer.NewBufferReadWriteCloser(10)
+	_ = buffer.NewBufferReadWriteCloser(10)
 	inCh := make(chan byte, 10)
 	// outCh := make(chan byte, 10)
-	go fromReaderToChan(bufio.NewReader(os.Stdin), inCh)
-	go fromChanToWriter(inCh, in)
+	go fromReaderToChan(in, inCh)
+	go fromChanToWriter(inCh, out)
 
 	// go fromReaderToChan(out, outCh)
 	// go fromChanToWriter(outCh, os.Stdout)
 
-	must(exec.ExecCmdExample("test", "default", "sh", in, out, out), "Error while exec to pod")
-
+	// must(exec.ExecCmdExample("test", "default", "sh", in, out, out), "Error while exec to pod")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	wg.Wait()
 }
 
 func must(err error, msg string) {
@@ -70,47 +73,4 @@ func fromChanToWriter(in <-chan byte, out io.WriteCloser) {
 		_, err := out.Write([]byte{b})
 		must(err, "error while writing")
 	}
-}
-
-type BufferReadWriteCloser struct {
-	ch chan byte
-}
-
-func NewBufferReadWriteCloser(n uint) BufferReadWriteCloser {
-	return BufferReadWriteCloser{
-		ch: make(chan byte, n),
-	}
-}
-
-func (brw BufferReadWriteCloser) Read(buf []byte) (int, error) {
-	var i int
-	for i = 0; i < len(buf); i++ {
-		b, ok := <-brw.ch
-		if !ok && i == 0 {
-			return 0, io.EOF
-		}
-		if !ok {
-			return i, nil
-		}
-		buf[i] = b
-
-		exec.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v)", b, string(b)))
-	}
-	return i, nil
-}
-
-func (brw BufferReadWriteCloser) Write(buf []byte) (int, error) {
-	for _, b := range buf {
-		brw.ch <- b
-
-		exec.PrintlnRaw(os.Stderr, fmt.Sprintf("write to chan %v (%v)", b, string(b)))
-	}
-	return len(buf), nil
-}
-
-func (brw BufferReadWriteCloser) Close() error {
-	close(brw.ch)
-
-	exec.PrintlnRaw(os.Stderr, fmt.Sprintf("Close chan"))
-	return nil
 }
