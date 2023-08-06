@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/GOodCoffeeLover/MasterDiploma/internal/buffer"
 	remoteExecuctor "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
 	"github.com/u-root/u-root/pkg/termios"
 	"golang.org/x/term"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 func main() {
@@ -52,7 +55,13 @@ func main() {
 		wg.Done()
 	}()
 
-	must(remoteExecuctor.ExecCmdExample("test", "default", "bash", inBuf, outBuf, outBuf), "Error while remoteExecuctor to pod")
+	home := homedir.HomeDir()
+	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+	must(err, "can't create kube config")
+	executor, err := remoteExecuctor.NewRemoteExecutor(config, "default", "test")
+	must(err, "can't create executor")
+	must(executor.Exec("bash", inBuf, outBuf), "Error while remoteExecuctor to pod")
+
 	wg.Wait()
 }
 
