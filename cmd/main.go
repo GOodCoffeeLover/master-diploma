@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/GOodCoffeeLover/MasterDiploma/internal/buffer"
-	remoteExecuctor "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
+	"github.com/GOodCoffeeLover/master-diploma/internal/buffer"
+	remoteExecuctor "github.com/GOodCoffeeLover/master-diploma/internal/remoteExecuctor"
 	"github.com/u-root/u-root/pkg/termios"
 	"golang.org/x/term"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,23 +36,28 @@ func main() {
 	outBuf := buffer.NewBufferReadWriteCloser(10)
 	inCh := make(chan byte, 10)
 	outCh := make(chan byte, 10)
+	ctx, finish := context.WithCancel(context.Background())
 	wg := sync.WaitGroup{}
 	wg.Add(4)
 	go func() {
-		buffer.FromReaderToChan(in, inCh)
+		buffer.FromReaderToChan(ctx, in, inCh)
+		remoteExecuctor.PrintlnRaw(os.Stderr, "finished with stdin to chan")
 		wg.Done()
 	}()
 	go func() {
-		buffer.FromChanToWriter(inCh, inBuf)
+		buffer.FromChanToWriter(ctx, inCh, inBuf)
+		remoteExecuctor.PrintlnRaw(os.Stderr, "finished with stdin chan to buf")
 		wg.Done()
 	}()
 
 	go func() {
-		buffer.FromReaderToChan(outBuf, outCh)
+		buffer.FromReaderToChan(ctx, outBuf, outCh)
+		remoteExecuctor.PrintlnRaw(os.Stderr, "finished with outBuf to chan")
 		wg.Done()
 	}()
 	go func() {
-		buffer.FromChanToWriter(outCh, out)
+		buffer.FromChanToWriter(ctx, outCh, out)
+		remoteExecuctor.PrintlnRaw(os.Stderr, "finished with chan to stdout")
 		wg.Done()
 	}()
 
@@ -61,6 +67,8 @@ func main() {
 	executor, err := remoteExecuctor.NewRemoteExecutor(config, "default", "test")
 	must(err, "can't create executor")
 	must(executor.Exec("bash", inBuf, outBuf), "Error while remoteExecuctor to pod")
+	finish()
+	in.Write([]byte("\nPress ANY KEY to exit\n"))
 
 	wg.Wait()
 }

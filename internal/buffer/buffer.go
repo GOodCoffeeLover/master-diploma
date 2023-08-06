@@ -1,17 +1,17 @@
 package buffer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
+	"github.com/GOodCoffeeLover/master-diploma/internal/remoteExecuctor"
 )
 
 type BufferReadWriteCloser struct {
-	name string
-	ch   chan byte
+	ch chan byte
 }
 
 func NewBufferReadWriteCloser(n uint) BufferReadWriteCloser {
@@ -26,9 +26,9 @@ func (brw BufferReadWriteCloser) Read(buf []byte) (int, error) {
 	b, ok := <-brw.ch
 	buf[0] = b
 	remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
-	if b == 4 {
-		return 1, io.EOF
-	}
+	// if b == 4 {
+	// 	return 1, io.EOF
+	// }
 	if !ok {
 		return 0, io.EOF
 	}
@@ -51,37 +51,47 @@ func (brw BufferReadWriteCloser) Close() error {
 	return nil
 }
 
-func FromReaderToChan(in io.Reader, out chan<- byte) {
+func FromReaderToChan(ctx context.Context, in io.Reader, out chan<- byte) {
 	for {
-		b := make([]byte, 1)
-		n, err := in.Read(b)
-		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("read from in reader %v bytes", n))
-
-		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("frorm reader %v (%v)", b, string(b)))
-		out <- b[0]
-		if errors.Is(err, io.EOF) || b[0] == 4 {
-			remoteExecuctor.PrintlnRaw(os.Stderr, "closed reader")
-			close(out)
+		select {
+		case <-ctx.Done():
 			return
+		default:
+			b := make([]byte, 1)
+			n, err := in.Read(b)
+			remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("read from in reader %v bytes", n))
+
+			remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("frorm reader %v (%v)", b, string(b)))
+			out <- b[0]
+			if errors.Is(err, io.EOF) {
+				remoteExecuctor.PrintlnRaw(os.Stderr, "closed reader")
+				close(out)
+				return
+			}
+			must(err, "error while reading")
 		}
-		must(err, "error while reading")
 
 	}
 }
 
-func FromChanToWriter(in <-chan byte, out io.WriteCloser) {
+func FromChanToWriter(ctx context.Context, in <-chan byte, out io.WriteCloser) {
 	for {
-		b, ok := <-in
-		if !ok {
-			remoteExecuctor.PrintlnRaw(os.Stderr, "closed chan")
-			must(out.Close(), "error while closing write")
+		select {
+		case <-ctx.Done():
 			return
-		}
+		case b, ok := <-in:
+			if !ok {
+				remoteExecuctor.PrintlnRaw(os.Stderr, "closed chan")
+				must(out.Close(), "error while closing write")
+				return
+			}
 
-		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("from chan %v (%v)", b, string(b)))
-		n, err := out.Write([]byte{b})
-		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("write to out writer %v bytes", n))
-		must(err, "error while writing")
+			remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("from chan %v (%v)", b, string(b)))
+			n, err := out.Write([]byte{b})
+			remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("write to out writer %v bytes", n))
+			must(err, "error while writing")
+
+		}
 	}
 }
 

@@ -1,8 +1,9 @@
-module github.com/GOodCoffeeLover/MasterDiploma
+module github.com/GOodCoffeeLover/master-diploma
 
 go 1.20
 
 require (
+	github.com/u-root/u-root v0.11.0
 	golang.org/x/term v0.6.0
 	k8s.io/api v0.27.4
 	k8s.io/client-go v0.27.4
@@ -30,7 +31,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/u-root/u-root v0.11.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sys v0.6.0 // indirect
