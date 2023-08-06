@@ -17,13 +17,12 @@ import (
 
 func PrintlnRaw(output io.Writer, msg interface{}) {
 	// m := fmt.Sprint(msg)
-	// fullMessage := m + "\n" + strings.Repeat("\b", len(m)+1)
+	// fullMessage := m + "\n" + strings.Repeat("\b", len(m))
 	// fmt.Fprint(output, fullMessage)
 }
 
 // ExecCmd exec command on specific pod and wait the command's output.
-func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
-
+func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout io.WriteCloser, stderr io.Writer) error {
 	PrintlnRaw(os.Stderr, "Executing...")
 	home := homedir.HomeDir()
 	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
@@ -36,13 +35,11 @@ func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout 
 	}
 
 	client := clientset.CoreV1().RESTClient()
-	cmd := []string{
-		command,
-	}
-	req := client.Post().Namespace("default").Resource("pods").Name(podName).SubResource("exec")
+	defer stdout.Close()
+	req := client.Post().Namespace(namespace).Resource("pods").Name(podName).SubResource("exec")
 	option := &v1.PodExecOptions{
 		Container: podName,
-		Command:   cmd,
+		Command:   []string{command},
 		Stdin:     true,
 		Stdout:    true,
 		Stderr:    true,

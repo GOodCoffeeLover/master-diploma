@@ -6,7 +6,7 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	buf := NewBufferReadWriteCloser(10)
+	buf := NewBufferReadWriteCloser(10, "")
 	input := []byte("string")
 	output := make([]byte, len(input))
 

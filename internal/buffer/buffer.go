@@ -1,16 +1,17 @@
 package buffer
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
-	exec "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
 )
 
 type BufferReadWriteCloser struct {
-	ch chan byte
+	name string
+	ch   chan byte
 }
 
 func NewBufferReadWriteCloser(n uint) BufferReadWriteCloser {
@@ -21,44 +22,32 @@ func NewBufferReadWriteCloser(n uint) BufferReadWriteCloser {
 }
 
 func (brw BufferReadWriteCloser) Read(buf []byte) (int, error) {
-	var i int
-	for i = 0; i < len(buf); i++ {
-		select {
-		case b, ok := <-brw.ch:
-			{
-				if !ok && i == 0 {
-					return 0, io.EOF
-				}
-				if !ok {
-					return i, nil
-				}
-				buf[i] = b
 
-				exec.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
-			}
-		default:
-			{
-				exec.PrintlnRaw(os.Stderr, fmt.Sprintf("returns by default with %v", i))
-				return i, nil
-			}
-		}
-
+	b, ok := <-brw.ch
+	buf[0] = b
+	remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
+	if b == 4 {
+		return 1, io.EOF
 	}
-	return i, nil
+	if !ok {
+		return 0, io.EOF
+	}
+
+	return 1, nil
 }
 
 func (brw BufferReadWriteCloser) Write(buf []byte) (int, error) {
 	for _, b := range buf {
 		brw.ch <- b
 
-		exec.PrintlnRaw(os.Stderr, fmt.Sprintf("write to chan %v (%v)", b, string(b)))
+		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("write to chan %v (%v)", b, string(b)))
 	}
 	return len(buf), nil
 }
 
 func (brw BufferReadWriteCloser) Close() error {
 	close(brw.ch)
-	exec.PrintlnRaw(os.Stderr, fmt.Sprintf("Close chan"))
+	remoteExecuctor.PrintlnRaw(os.Stderr, "close chan")
 	return nil
 }
 
@@ -68,17 +57,14 @@ func FromReaderToChan(in io.Reader, out chan<- byte) {
 		n, err := in.Read(b)
 		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("read from in reader %v bytes", n))
 
-		if err == io.EOF {
+		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("frorm reader %v (%v)", b, string(b)))
+		out <- b[0]
+		if errors.Is(err, io.EOF) || b[0] == 4 {
 			remoteExecuctor.PrintlnRaw(os.Stderr, "closed reader")
 			close(out)
 			return
 		}
-		remoteExecuctor.PrintlnRaw(os.Stderr, fmt.Sprintf("frorm reader %v (%v)", b, string(b)))
 		must(err, "error while reading")
-		for i := 0; i < n; i++ {
-
-			out <- b[i]
-		}
 
 	}
 }

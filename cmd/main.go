@@ -28,12 +28,12 @@ func main() {
 
 	out := os.Stdout
 	in := os.Stdin
-	inBuf := buffer.NewBufferReadWriteCloser(10, "input")
-	outBuf := buffer.NewBufferReadWriteCloser(10, "output")
+	inBuf := buffer.NewBufferReadWriteCloser(10)
+	outBuf := buffer.NewBufferReadWriteCloser(10)
 	inCh := make(chan byte, 10)
 	outCh := make(chan byte, 10)
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(4)
 	go func() {
 		buffer.FromReaderToChan(in, inCh)
 		wg.Done()
@@ -45,11 +45,11 @@ func main() {
 
 	go func() {
 		buffer.FromReaderToChan(outBuf, outCh)
-		// wg.Done()
+		wg.Done()
 	}()
 	go func() {
 		buffer.FromChanToWriter(outCh, out)
-		// wg.Done()
+		wg.Done()
 	}()
 
 	must(remoteExecuctor.ExecCmdExample("test", "default", "bash", inBuf, outBuf, outBuf), "Error while remoteExecuctor to pod")
