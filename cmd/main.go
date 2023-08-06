@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/GOodCoffeeLover/MasterDiploma/internal/buffer"
 	remoteExecuctor "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
@@ -27,19 +28,32 @@ func main() {
 
 	out := os.Stdout
 	in := os.Stdin
-	inBuf := buffer.NewBufferReadWriteCloser(10)
-	outBuf := buffer.NewBufferReadWriteCloser(10)
+	inBuf := buffer.NewBufferReadWriteCloser(10, "input")
+	outBuf := buffer.NewBufferReadWriteCloser(10, "output")
 	inCh := make(chan byte, 10)
 	outCh := make(chan byte, 10)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		buffer.FromReaderToChan(in, inCh)
+		wg.Done()
+	}()
+	go func() {
+		buffer.FromChanToWriter(inCh, inBuf)
+		wg.Done()
+	}()
 
-	go buffer.FromReaderToChan(in, inCh)
-	go buffer.FromChanToWriter(inCh, inBuf)
-
-	go buffer.FromReaderToChan(outBuf, outCh)
-	go buffer.FromChanToWriter(outCh, out)
+	go func() {
+		buffer.FromReaderToChan(outBuf, outCh)
+		// wg.Done()
+	}()
+	go func() {
+		buffer.FromChanToWriter(outCh, out)
+		// wg.Done()
+	}()
 
 	must(remoteExecuctor.ExecCmdExample("test", "default", "bash", inBuf, outBuf, outBuf), "Error while remoteExecuctor to pod")
-
+	wg.Wait()
 }
 
 func must(err error, msg string) {
