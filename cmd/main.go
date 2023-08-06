@@ -33,11 +33,7 @@ func main() {
 	go buffer.FromReaderToChan(outBuf, outCh)
 	go buffer.FromChanToWriter(outCh, out)
 
-	// must(remoteExecuctor.ExecCmdExample("test", "default", "sh", in, out, out), "Error while remoteExecuctor to pod")
-	// must(remoteExecuctor.ExecCmdExample("test", "default", "sh", inBuf, out, out), "Error while remoteExecuctor to pod")
-	// must(remoteExecuctor.ExecCmdExample("test", "default", "sh", in, outBuf, outBuf), "Error while remoteExecuctor to pod")
-
-	must(remoteExecuctor.ExecCmdExample("test", "default", "sh", inBuf, outBuf, outBuf), "Error while remoteExecuctor to pod")
+	must(remoteExecuctor.ExecCmdExample("test", "default", "bash", inBuf, outBuf, outBuf), "Error while remoteExecuctor to pod")
 
 }
 

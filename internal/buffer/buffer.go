@@ -21,37 +21,30 @@ func NewBufferReadWriteCloser(n uint) BufferReadWriteCloser {
 }
 
 func (brw BufferReadWriteCloser) Read(buf []byte) (int, error) {
-	// var i int
-	// for i = 0; i < len(buf); i++ {
-	// 	select {
-	// 	case b, ok := <-brw.ch:
-	// 		{
-	// 			if !ok && i == 0 {
-	// 				return 0, io.EOF
-	// 			}
-	// 			if !ok {
-	// 				return i, nil
-	// 			}
-	// 			buf[i] = b
+	var i int
+	for i = 0; i < len(buf); i++ {
+		select {
+		case b, ok := <-brw.ch:
+			{
+				if !ok && i == 0 {
+					return 0, io.EOF
+				}
+				if !ok {
+					return i, nil
+				}
+				buf[i] = b
 
-	// 			exec.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
-	// 		}
-	// 	case <-time.Tick(time.Second * 5):
-	// 		{
-	// 			exec.PrintlnRaw(os.Stderr, fmt.Sprintf("returns by default with %v", i))
-	// 			return i, nil
-	// 		}
-	// 	}
+				exec.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
+			}
+		default:
+			{
+				exec.PrintlnRaw(os.Stderr, fmt.Sprintf("returns by default with %v", i))
+				return i, nil
+			}
+		}
 
-	// }
-	b, ok := <-brw.ch
-
-	if !ok {
-		return 0, io.EOF
 	}
-	exec.PrintlnRaw(os.Stderr, fmt.Sprintf("read from chan %v (%v), %v", b, string(b), buf))
-	buf[0] = b
-	return 1, nil
+	return i, nil
 }
 
 func (brw BufferReadWriteCloser) Write(buf []byte) (int, error) {
