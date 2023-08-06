@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/GOodCoffeeLover/MasterDiploma/internal/buffer"
 	remoteExecuctor "github.com/GOodCoffeeLover/MasterDiploma/internal/remoteExecuctor"
+	"github.com/u-root/u-root/pkg/termios"
 	"golang.org/x/term"
 )
 
@@ -15,9 +15,14 @@ func main() {
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	must(err, "Can't make raw term")
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
-	must(exec.Command("stty", "-F", "/dev/tty", "-echo").Run(), "Can't turn off print to term")
+
+	t, err := termios.GTTY(int(os.Stdin.Fd()))
+	must(err, "Can't get termious terminal")
+
+	must(t.SetOpts([]string{"~echo"}), "Can't turn off print to term")
+
 	defer func() {
-		must(exec.Command("stty", "-F", "/dev/tty", "echo").Run(), "Can't turn on print to term")
+		must(t.SetOpts([]string{"echo"}), "Can't turn on print to term")
 	}()
 
 	out := os.Stdout
