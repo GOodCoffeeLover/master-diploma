@@ -17,14 +17,14 @@ import (
 
 func PrintlnRaw(output io.Writer, msg interface{}) {
 	// m := fmt.Sprint(msg)
-	// fullMessage := m + "\n" + strings.Repeat("\b", len(m))
+	// fullMessage := m + "\n" + strings.Repeat("\b", len(m)+1)
 	// fmt.Fprint(output, fullMessage)
 }
 
 // ExecCmd exec command on specific pod and wait the command's output.
 func ExecCmdExample(podName, namespace, command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 
-	fmt.Fprintln(os.Stderr, "Executing...")
+	PrintlnRaw(os.Stderr, "Executing...")
 	home := homedir.HomeDir()
 	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
 	if err != nil {
