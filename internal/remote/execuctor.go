@@ -1,4 +1,4 @@
-package remoteExecuctor
+package remote
 
 import (
 	"context"
@@ -12,26 +12,20 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-func PrintlnRaw(output io.Writer, msg interface{}) {
-	// m := fmt.Sprint(msg)
-	// fullMessage := m + "\n" + strings.Repeat("\b", len(m))
-	// fmt.Fprint(output, fullMessage)
-}
-
-type RemoteExecutor struct {
+type Executor struct {
 	config    *rest.Config
 	k8sClient rest.Interface
 	podName   string
 	namespace string
 }
 
-func NewRemoteExecutor(config *rest.Config, namespace, podName string) (*RemoteExecutor, error) {
+func NewExecutor(config *rest.Config, namespace, podName string) (*Executor, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
 	client := clientset.CoreV1().RESTClient()
-	return &RemoteExecutor{
+	return &Executor{
 		config:    config,
 		k8sClient: client,
 		namespace: namespace,
@@ -39,7 +33,7 @@ func NewRemoteExecutor(config *rest.Config, namespace, podName string) (*RemoteE
 	}, nil
 }
 
-func (re *RemoteExecutor) Exec(command string, stdin io.Reader, stdout io.WriteCloser) error {
+func (re *Executor) Exec(command string, stdin io.Reader, stdout io.WriteCloser) error {
 	if stdin == nil && stdout == nil {
 		return fmt.Errorf("can't execute command(%v) with nil stdin and stdout", command)
 	}
@@ -77,3 +71,5 @@ func (re *RemoteExecutor) Exec(command string, stdin io.Reader, stdout io.WriteC
 		Stderr: stdout,
 	})
 }
+
+// func setupOptions() {}
