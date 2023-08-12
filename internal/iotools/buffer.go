@@ -125,4 +125,7 @@ loop:
 		Err(err).
 		Str("component", "FromChanToWriter").
 		Msg("close writer")
+	if err != nil {
+		panic(err)
+	}
 }

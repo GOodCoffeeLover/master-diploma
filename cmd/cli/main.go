@@ -10,13 +10,12 @@ import (
 )
 
 func main() {
-	log.Logger = log.Level(zerolog.InfoLevel)
 	log.Logger = log.Level(zerolog.DebugLevel)
 	log.Logger = log.Output(iotools.NewBackSpacer(os.Stderr))
 	log.
 		Info().
 		Msg("Started")
 	s := remote.NewSession(os.Stdin, os.Stdout)
-	s.Run("ls")
+	s.Run("bash")
 
 }
