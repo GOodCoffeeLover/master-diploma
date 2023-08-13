@@ -41,8 +41,8 @@ func (re *Executor) Exec(command string, stdin io.Reader, stdout io.WriteCloser)
 	req := re.k8sClient.Post().Namespace(re.namespace).Resource("pods").Name(re.podName).SubResource("exec")
 
 	option := &v1.PodExecOptions{
-		Container: re.podName,
-		Command:   []string{command},
+		// Container: re.podName,
+		Command: []string{command},
 	}
 	if stdin != nil {
 		option.Stdin = true

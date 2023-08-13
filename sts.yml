@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: test
+spec:
+  selector:
+    matchLabels:
+      app: test
+  # serviceName: "test"
+  replicas: 1
+  minReadySeconds: 10 # by default is 0
+  template:
+    metadata:
+      labels:
+        app: test # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: test1
+        image: ubuntu
+        command: ["sh", "-c", "while true; do sleep 99; done" ]

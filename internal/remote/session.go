@@ -18,10 +18,8 @@ import (
 )
 
 type Session struct {
-	in        *os.File
-	out       *os.File
-	namespace string
-	pod       string
+	in  *os.File
+	out *os.File
 }
 
 func NewSession(in, out *os.File) Session {
@@ -117,7 +115,7 @@ func (s *Session) writeOutput(ctx context.Context, ch <-chan byte, finish contex
 	iotools.NewBackSpacer(s.out).Write([]byte("Press ANY KEY to exit"))
 }
 
-func (s *Session) Run(cmd string) error {
+func (s *Session) Run(ns, pod, cmd string) error {
 	unsetup, err := s.setupTTY()
 	if err != nil {
 		return err
@@ -139,7 +137,7 @@ func (s *Session) Run(cmd string) error {
 		wg.Done()
 	}()
 
-	go rpc(ctx, inCh, outCh, cmd)
+	go rpc(ctx, inCh, outCh, ns, pod, cmd)
 
 	wg.Wait()
 	return nil
@@ -151,7 +149,7 @@ func must(err error, msg string) {
 	}
 }
 
-func rpc(ctx context.Context, inCh, outCh chan byte, cmd string) {
+func rpc(ctx context.Context, inCh, outCh chan byte, ns, pod, cmd string) {
 	home := homedir.HomeDir()
 	config, err := clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
 	must(err, "can't create kube config")
@@ -174,7 +172,7 @@ func rpc(ctx context.Context, inCh, outCh chan byte, cmd string) {
 			Msg("finished with outBuf to chan")
 	}()
 
-	executor, err := NewExecutor(config, "default", "test")
+	executor, err := NewExecutor(config, ns, pod)
 	must(err, "can't create executor")
 	must(executor.Exec(cmd, inBuf, outBuf), "Error while remoteExecuctor to pod")
 
