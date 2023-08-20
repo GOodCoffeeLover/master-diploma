@@ -127,12 +127,12 @@ func (s *Session) Run(ns, pod, cmd string) error {
 	ctx, finish := context.WithCancel(context.Background())
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
 	go func() {
 		s.readInput(ctx, inCh)
-		wg.Done()
 	}()
+
 	go func() {
+		wg.Add(1)
 		s.writeOutput(ctx, outCh, finish)
 		wg.Done()
 	}()
