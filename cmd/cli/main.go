@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"time"
 
 	"github.com/GOodCoffeeLover/master-diploma/internal/iotools"
 	"github.com/GOodCoffeeLover/master-diploma/internal/remote"
@@ -19,5 +18,4 @@ func main() {
 		Msg("Started")
 	s := remote.NewSession(os.Stdin, os.Stdout)
 	s.Run("default", "test-0", "bash")
-	time.Sleep(time.Second)
 }
