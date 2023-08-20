@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package sandbox;
+option go_package="github.com/GOodCoffeeLover/master-diploma/pkg/pb/sandbox/sandbox";
+
+service sandbox {
+  // Sends a greeting
+  rpc Execute (stream ExecuteRequest) returns (stream ExecuteResponse) {}
+}
+
+// The request message containing the user's name.
+message ExecuteRequest {
+  string text = 1;
+  string pod = 2;
+  string namespace = 3;
+}
+
+// The response message containing the greetings
+message ExecuteResponse {
+  string message = 1;
+}
