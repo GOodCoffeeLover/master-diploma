@@ -18,7 +18,13 @@ type SandboxServer struct {
 	config *rest.Config
 }
 
-func (s *SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
+func NewSandboxServer(config *rest.Config) SandboxServer {
+	return SandboxServer{
+		config: config,
+	}
+
+}
+func (s SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
 	req, err := stream.Recv()
 	if err != nil {
 		return status.Error(codes.Internal, "execute: error while reading first msg")
@@ -46,7 +52,7 @@ func (s *SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
 			default:
 				{
 					r, err := stream.Recv()
-					if err == io.EOF {
+					if errors.Is(err, io.EOF) {
 						errs <- nil
 						break loop
 					}
@@ -57,15 +63,15 @@ func (s *SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
 					in.Write([]byte(r.GetText()))
 				}
 			}
-			in.Close()
 		}
+		in.Close()
 	}()
 	out := iotools.NewBuffer(1)
 	go func() {
 		for {
 			b := make([]byte, 1)
 			_, err := out.Read(b)
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				errs <- nil
 				break
 			}
