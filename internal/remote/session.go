@@ -111,8 +111,6 @@ func (s *Session) writeOutput(ctx context.Context, ch <-chan byte, finish contex
 		Debug().
 		Str("component", "session").
 		Msg("finished with chan to stdout")
-	finish()
-	iotools.NewBackSpacer(s.out).Write([]byte("Press ANY KEY to exit"))
 }
 
 func (s *Session) Run(ns, pod, cmd string) error {
@@ -124,7 +122,6 @@ func (s *Session) Run(ns, pod, cmd string) error {
 
 	inCh := make(chan byte, 1)
 	outCh := make(chan byte, 1)
-	ctx, finish := context.WithCancel(context.Background())
 
 	wg := sync.WaitGroup{}
 	go func() {

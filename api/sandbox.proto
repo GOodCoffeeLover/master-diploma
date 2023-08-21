@@ -8,14 +8,15 @@ service sandbox {
   rpc Execute (stream ExecuteRequest) returns (stream ExecuteResponse) {}
 }
 
-// The request message containing the user's name.
+// The request message containing the user's name
 message ExecuteRequest {
   string text = 1;
-  string pod = 2;
-  string namespace = 3;
+  string namespace = 2;
+  string pod = 3;
+  string command = 4;
 }
 
 // The response message containing the greetings
 message ExecuteResponse {
-  string message = 1;
+  string text = 1;
 }
