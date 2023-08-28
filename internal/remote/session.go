@@ -30,28 +30,34 @@ func NewSession(in, out *os.File, sandboxClient pb.SandboxClient) Session {
 	}
 }
 
-func (s *Session) setupTTY() (func(), error) {
+func (s *Session) setupTTY() (unsetup func(), err error) {
 
 	oldState, err := term.MakeRaw(int(s.in.Fd()))
 	if err != nil {
-		return func() {}, fmt.Errorf("can't make raw term: %v", err)
+		err = fmt.Errorf("can't make raw term: %v", err)
+		return
 	}
-
+	defer func() {
+		if err != nil {
+			term.Restore(int(s.in.Fd()), oldState)
+		}
+	}()
 	t, err := termios.GTTY(int(s.in.Fd()))
 	if err != nil {
-		term.Restore(int(s.in.Fd()), oldState)
-		return func() {}, fmt.Errorf("can't get termious terminal: %v", err)
+		err = fmt.Errorf("can't get termious terminal: %v", err)
+		return
 	}
 	err = t.SetOpts([]string{"~echo"})
 	if err != nil {
-		term.Restore(int(s.in.Fd()), oldState)
-		return func() {}, fmt.Errorf("failed turn off output: %w", err)
+		err = fmt.Errorf("failed turn off output: %w", err)
+		return
 	}
 
-	return func() {
+	unsetup = func() {
 		term.Restore(int(os.Stdin.Fd()), oldState)
 		t.SetOpts([]string{"echo"})
-	}, nil
+	}
+	return
 }
 func (s *Session) readInput(stream pb.Sandbox_ExecuteClient) error {
 
@@ -75,8 +81,9 @@ func (s *Session) readInput(stream pb.Sandbox_ExecuteClient) error {
 		if err != nil {
 			return err
 		}
+		inp := string(b)
 		err = stream.Send(&pb.ExecuteRequest{
-			Text: string(b),
+			Input: &inp,
 		})
 		if err != nil {
 			return err
@@ -85,24 +92,25 @@ func (s *Session) readInput(stream pb.Sandbox_ExecuteClient) error {
 }
 
 func (s *Session) writeOutput(stream pb.Sandbox_ExecuteClient) error {
+	defer stream.CloseSend()
 	for {
 		resp, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			log.
 				Debug().
 				Str("component", "session").
-				Msg("finished with chan to stdout")
+				Msg("finished with stream to stdout")
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		n, err := s.out.Write([]byte(resp.GetText()))
+		n, err := s.out.Write([]byte(resp.GetOutput()))
 		log.
 			Trace().
 			Err(err).
 			Str("component", "FromChanToWriter").
-			Msgf("write %v (%v) to out writer %v bytes", []byte(resp.GetText()), resp.GetText(), n)
+			Msgf("write %v (%v) to out writer %v bytes", []byte(resp.GetOutput()), resp.GetOutput(), n)
 		if err != nil {
 			return err
 		}
@@ -121,9 +129,9 @@ func (s *Session) Run(ns, pod, cmd string) error {
 		return err
 	}
 	stream.Send(&pb.ExecuteRequest{
-		Namespace: ns,
-		Pod:       pod,
-		Command:   cmd,
+		Namespace: &ns,
+		Pod:       &pod,
+		Command:   &cmd,
 	})
 	go func() {
 		err := s.readInput(stream)

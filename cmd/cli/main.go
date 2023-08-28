@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	// zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	log.Logger = log.Output(iotools.NewBackSpacer(os.Stderr))
 

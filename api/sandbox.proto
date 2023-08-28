@@ -10,14 +10,14 @@ service sandbox {
 
 // The request message containing the user's name
 message ExecuteRequest {
-  string text = 1;
-  string namespace = 2;
-  string pod = 3;
-  string command = 4;
+  optional string input = 1;
+  optional string namespace = 2;
+  optional string pod = 3;
+  optional string command = 4;
 }
 
 // The response message containing the greetings
 message ExecuteResponse {
-  string text = 1;
+  string output = 1;
 }
 
