@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -12,6 +13,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+var (
+	ErrorInvalidExecutionTarget = errors.New("invalid target for execution")
+)
+
 type Executor struct {
 	config    *rest.Config
 	k8sClient rest.Interface
@@ -20,6 +25,15 @@ type Executor struct {
 }
 
 func NewExecutor(config *rest.Config, namespace, podName string) (*Executor, error) {
+	if config == nil {
+		return nil, errors.New("invalid config: config is nil pointer")
+	}
+	if namespace == "" {
+		return nil, fmt.Errorf("%w: get empty namespace", ErrorInvalidExecutionTarget)
+	}
+	if podName == "" {
+		return nil, fmt.Errorf("%w: get empty pod name", ErrorInvalidExecutionTarget)
+	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
