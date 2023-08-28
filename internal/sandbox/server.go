@@ -8,6 +8,7 @@ import (
 	"github.com/GOodCoffeeLover/master-diploma/internal/iotools"
 	"github.com/GOodCoffeeLover/master-diploma/internal/remote"
 	pb "github.com/GOodCoffeeLover/master-diploma/pkg/sandbox/api"
+	"github.com/rs/zerolog"
 	log "github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,15 +18,18 @@ import (
 type SandboxServer struct {
 	pb.UnimplementedSandboxServer
 	config *rest.Config
+	log    *zerolog.Logger
 }
 
 func NewSandboxServer(config *rest.Config) SandboxServer {
+	logger := log.With().Str("component", "SandboxServer").Logger()
 	return SandboxServer{
 		config: config,
+		log:    &logger,
 	}
 
 }
-func (s *SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
+func (s SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
 	req, err := stream.Recv()
 	if err != nil {
 		return status.Error(codes.Internal, "execute: error while reading first msg")
@@ -50,12 +54,16 @@ func (s *SandboxServer) Execute(stream pb.Sandbox_ExecuteServer) error {
 
 	err = <-errs
 	if err != nil {
+		s.log.
+			Error().
+			Err(err).
+			Msg("error in executin command")
 		return err
 	}
 	return nil
 }
 
-func (ss *SandboxServer) writeOutput(out io.Reader, stream pb.Sandbox_ExecuteServer, errs chan<- error) {
+func (s *SandboxServer) writeOutput(out io.Reader, stream pb.Sandbox_ExecuteServer, errs chan<- error) {
 	for {
 		b := make([]byte, 1)
 		_, err := out.Read(b)
@@ -75,7 +83,7 @@ func (ss *SandboxServer) writeOutput(out io.Reader, stream pb.Sandbox_ExecuteSer
 			break
 		}
 	}
-	log.
+	s.log.
 		Info().
 		Msg("finish with writing output")
 }
@@ -94,7 +102,7 @@ func (s *SandboxServer) readInput(in io.WriteCloser, stream pb.Sandbox_ExecuteSe
 		in.Write([]byte(r.GetInput()))
 	}
 	in.Close()
-	log.
+	s.log.
 		Info().
 		Msg("finish with reading input")
 
