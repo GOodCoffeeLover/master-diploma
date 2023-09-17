@@ -29,5 +29,11 @@ func main() {
 
 	sandbox := pb.NewSandboxClient(conn)
 	s := remote.NewSession(os.Stdin, os.Stdout, sandbox)
-	s.Run("default", "test-0", "bash")
+	err = s.Run("default", "test-0", "bash")
+	if err != nil {
+		log.Fatal().Msgf("Failed execute %v", err)
+	}
+	log.
+		Info().
+		Msg("Finished")
 }
