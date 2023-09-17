@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/GOodCoffeeLover/master-diploma/internal/iotools"
 	pb "github.com/GOodCoffeeLover/master-diploma/pkg/sandbox/api"
 	"google.golang.org/grpc"
 
@@ -116,6 +117,12 @@ func (s *Session) writeOutput(stream pb.Sandbox_ExecuteClient) error {
 		}
 
 	}
+	log.
+		Debug().
+		Str("component", "session").
+		Msg("finished with chan to stdout")
+	finish()
+	iotools.NewBackspaceWriter(s.out).Write([]byte("Press ANY KEY to exit"))
 }
 
 func (s *Session) Run(ns, pod, cmd string) error {

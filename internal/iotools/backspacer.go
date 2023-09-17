@@ -7,21 +7,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type BackSpacer struct {
+type BackspaceWriter struct {
 	writer io.Writer
 }
 
-func NewBackSpacer(w io.Writer) BackSpacer {
+func NewBackspaceWriter(w io.Writer) BackspaceWriter {
 	log.
 		Trace().
-		Str("component", "backspacer").
-		Msg("init new backspacer")
-	return BackSpacer{
+		Str("component", "BackspaceWriter").
+		Msg("init new BackspaceWriter")
+	return BackspaceWriter{
 		writer: w,
 	}
 }
 
-func (bsw BackSpacer) Write(b []byte) (int, error) {
+func (bsw BackspaceWriter) Write(b []byte) (int, error) {
 	output := make([]byte, len(b))
 	copy(output, b)
 	output = append(output, []byte(strings.Repeat("\b", len(b)))...)

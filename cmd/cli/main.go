@@ -16,7 +16,7 @@ func main() {
 	// zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	// zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-	log.Logger = log.Output(iotools.NewBackSpacer(os.Stderr))
+	log.Logger = log.Output(iotools.NewBackspaceWriter(os.Stderr))
 
 	conn, err := grpc.Dial("localhost:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
